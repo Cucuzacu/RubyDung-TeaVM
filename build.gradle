@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'org.teavm' version '0.15.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+}
+
+dependencies {
+    implementation "org.teavm:teavm-jso:0.15.0"
+    implementation "org.teavm:teavm-classlib:0.15.0"
+    implementation "org.teavm:teavm-platform:0.15.0"
+}
+
+teavm {
+    js {
+        mainClass = 'com.mojang.rubydung.RubyDung'
+        entryPointName = 'main'
+
+        obfuscated = true
+
+        debugInformation = false
+
+        sourceMap = false
+
+        optimization = org.teavm.gradle.api.OptimizationLevel.BALANCED
+
+        fastGlobalAnalysis = false
+
+        maxTopLevelNames = 10000
+        
+        outputDir = file("out")
+        targetFileName = "poop.js"
+
+        relativePathInOutputDir = ""
+        
+        strict = false
+    }
+}
