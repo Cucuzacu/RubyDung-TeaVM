@@ -33,25 +33,24 @@ public class Level {
    }
 
    public void load() {
-      try {
-         String b64 = Window.current().getLocalStorage().getItem("level.dat");
-         if (b64 != null) {
-            byte[] decoded = java.util.Base64.getDecoder().decode(b64);
+      loadFromDB(data -> {
+         try {
+            byte[] decoded = java.util.Base64.getDecoder().decode(data);
             System.arraycopy(decoded, 0, this.blocks, 0, Math.min(decoded.length, this.blocks.length));
             this.calcLightDepths(0, 0, this.width, this.height);
             for(int i = 0; i < this.levelListeners.size(); ++i) {
                ((LevelListener)this.levelListeners.get(i)).allChanged();
             }
+         } catch (Exception e) {
+            e.printStackTrace();
          }
-      } catch (Exception e) {
-         e.printStackTrace();
-      }
+      });
    }
 
    public void save() {
       try {
          String b64 = java.util.Base64.getEncoder().encodeToString(this.blocks);
-         Window.current().getLocalStorage().setItem("level.dat", b64);
+         saveToDB(b64);
       } catch (Exception e) {
          e.printStackTrace();
       }
@@ -124,7 +123,7 @@ public class Level {
    }
 
    public float getBrightness(int x, int y, int z) {
-      float dark = 0.6F;
+      float dark = 0.4F;
       float light = 1.0F;
       if (x >= 0 && y >= 0 && z >= 0 && x < this.width && y < this.depth && z < this.height) {
          return y < this.lightDepths[x + z * this.width] ? dark : light;
@@ -142,4 +141,35 @@ public class Level {
          }
       }
    }
+
+   @org.teavm.jso.JSFunctor
+   public interface DBResult extends org.teavm.jso.JSObject {
+       void onResult(String data);
+   }
+
+   @org.teavm.jso.JSBody(params = {"callback"}, script = 
+      "var req = indexedDB.open('rubydung', 1);" +
+      "req.onupgradeneeded = function(e) { e.target.result.createObjectStore('levels'); };" +
+      "req.onsuccess = function(e) {" +
+      "  var db = e.target.result;" +
+      "  if (!db.objectStoreNames.contains('levels')) return;" +
+      "  var tx = db.transaction('levels', 'readonly');" +
+      "  var getReq = tx.objectStore('levels').get('level.dat');" +
+      "  getReq.onsuccess = function(e) {" +
+      "    if (e.target.result) callback(e.target.result);" +
+      "  };" +
+      "};"
+   )
+   public static native void loadFromDB(DBResult callback);
+
+   @org.teavm.jso.JSBody(params = {"data"}, script = 
+      "var req = indexedDB.open('rubydung', 1);" +
+      "req.onupgradeneeded = function(e) { e.target.result.createObjectStore('levels'); };" +
+      "req.onsuccess = function(e) {" +
+      "  var db = e.target.result;" +
+      "  var tx = db.transaction('levels', 'readwrite');" +
+      "  tx.objectStore('levels').put(data, 'level.dat');" +
+      "};"
+   )
+   public static native void saveToDB(String data);
 }
