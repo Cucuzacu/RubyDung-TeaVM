@@ -28,7 +28,5 @@ Now, go into the out folder and host it as a web server!
 
 
 
-* **Known Bugs**
-* **- Blocks in the distance are pink.**
-
 I know this has already been done, but my version compiles to a way smaller .js file.
+

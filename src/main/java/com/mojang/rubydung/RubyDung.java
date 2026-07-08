@@ -3,6 +3,7 @@ package com.mojang.rubydung;
 import com.mojang.rubydung.level.Chunk;
 import com.mojang.rubydung.level.Level;
 import com.mojang.rubydung.level.LevelRenderer;
+import org.teavm.jso.JSBody;
 import org.teavm.jso.browser.Window;
 import org.teavm.jso.dom.html.HTMLCanvasElement;
 import org.teavm.jso.typedarrays.Int16Array;
@@ -45,7 +46,7 @@ public class RubyDung implements Runnable {
       this.fogColor = new float[]{(float)(col >> 16 & 255) / 255.0F, (float)(col >> 8 & 255) / 255.0F, (float)(col & 255) / 255.0F, 1.0F};
       
       HTMLCanvasElement canvas = Window.current().getDocument().getElementById("canvas").cast();
-      gl = canvas.getContext("webgl").cast();
+      gl = getWebGLContext(canvas);
       this.resize(Window.current().getInnerWidth(), Window.current().getInnerHeight());
       Window.current().addEventListener("resize", evt -> {
           this.resize(Window.current().getInnerWidth(), Window.current().getInnerHeight());
@@ -62,7 +63,7 @@ public class RubyDung implements Runnable {
       gl.shaderSource(vs, "attribute vec3 aPosition; attribute vec2 aTexCoord; attribute vec3 aColor; uniform mat4 uProj; uniform mat4 uModl; varying vec2 vTexCoord; varying vec3 vColor; varying float vFogDist; void main() { vec4 pos = uModl * vec4(aPosition, 1.0); gl_Position = uProj * pos; vTexCoord = aTexCoord; vColor = aColor; vFogDist = length(pos.xyz); }");
       gl.compileShader(vs);
       WebGLShader fs = gl.createShader(WebGLRenderingContext.FRAGMENT_SHADER);
-      gl.shaderSource(fs, "precision mediump float; varying vec2 vTexCoord; varying vec3 vColor; varying float vFogDist; uniform sampler2D uTex; uniform bool uHasTexture; uniform bool uHasColor; uniform vec4 uFogColor; uniform float uAlpha; uniform bool uUseFog; void main() { vec4 col = vec4(1.0); if(uHasColor) col *= vec4(vColor, 1.0); if(uHasTexture) col *= texture2D(uTex, vTexCoord); col.a *= uAlpha; if(uUseFog) { float fogFactor = exp(-0.02 * vFogDist); fogFactor = clamp(fogFactor, 0.0, 1.0); gl_FragColor = mix(uFogColor, col, fogFactor); } else { gl_FragColor = col; } }");
+      gl.shaderSource(fs, "precision highp float; varying vec2 vTexCoord; varying vec3 vColor; varying float vFogDist; uniform sampler2D uTex; uniform bool uHasTexture; uniform bool uHasColor; uniform vec4 uFogColor; uniform float uAlpha; uniform bool uUseFog; void main() { vec4 col = vec4(1.0); if(uHasColor) col *= vec4(vColor, 1.0); if(uHasTexture) col *= texture2D(uTex, vTexCoord); col.a *= uAlpha; if(uUseFog) { float fogFactor = exp(-0.02 * vFogDist); fogFactor = clamp(fogFactor, 0.0, 1.0); gl_FragColor = mix(uFogColor, col, fogFactor); } else { gl_FragColor = col; } }");
       gl.compileShader(fs);
       program = gl.createProgram();
       gl.attachShader(program, vs);
@@ -197,7 +198,7 @@ public class RubyDung implements Runnable {
    private void setupCamera(float a) {
       glMatrixMode(5889);
       glLoadIdentity();
-      gluPerspective(70.0F, (float)this.width / (float)this.height, 0.05F, 1000.0F);
+      gluPerspective(70.0F, (float)this.width / (float)this.height, 0.1F, 1000.0F);
       glMatrixMode(5888);
       glLoadIdentity();
       this.moveCameraToPlayer(a);
@@ -280,4 +281,7 @@ public class RubyDung implements Runnable {
    public static void main(String[] args) throws LWJGLException {
       (new Thread(new RubyDung())).start();
    }
+
+   @JSBody(params = {"c"}, script = "return c.getContext('webgl', {antialias: false});")
+   public static native WebGLRenderingContext getWebGLContext(HTMLCanvasElement c);
 }
